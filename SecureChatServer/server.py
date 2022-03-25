@@ -1,5 +1,6 @@
 import socket
 import select
+import sqlite3
 
 LENGTH = 32
 
@@ -30,9 +31,7 @@ print('Listening on ', IP, PORT)
 
 # Define actions when a message is received
 def receive_message(client_socket):
-
     try:
-
         # We've set the length to 32. We can change it
         message_header = client_socket.recv(LENGTH)
 
@@ -45,18 +44,15 @@ def receive_message(client_socket):
 
         # separate the  header from the actual message and return
         return {'header': message_header, 'data': client_socket.recv(message_length)}
-
     except:
 
         # This only happens in case of a closed or lost connection
         return False
 
 while True:
-
     # call to select to see if we received messages or generated exceptions 
     # on connected sockets.  
-    read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
-
+    read_sockets, dummy, exception_sockets = select.select(sockets_list, [], sockets_list)
 
     # Iterate over sockets that sent messages
     for notified_socket in read_sockets:
@@ -89,7 +85,6 @@ while True:
             # If False, client disconnected, cleanup
             if message is False:
                 print('Closed connection from: {}'.format(clients[notified_socket]['data'].decode('utf-8')))
-
                 # Remove from list and dictionary
                 sockets_list.remove(notified_socket)
                 del clients[notified_socket]
