@@ -1,12 +1,3 @@
-'''
-Homework 4, DES
-Name: Zhixi Lin
-FSUID: zl19
-Due: 03/31/2021, 11:59 PM EDT
-The program in this file is the individual work of Zhixi Lin
-'''
-
-
 import sys, random
 from datetime import datetime
 
@@ -81,7 +72,6 @@ def encrypt(plain, key):
         # print(finnum)
         i+=1
     numList.append(finnum)
-
     CipherText = str()
     for num in numList:
         cipherTextTemp = str() #used to reverse, and add back to cipherText
