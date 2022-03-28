@@ -1,12 +1,29 @@
 import socket
 import select
 import errno
+import hashlib, uuid
+from getpass import getpass
+import sys
+
+#5. Algorithm in client side to handle KDC Request and Response - Jordan
+     #5.5. ~ensure user messages update upon each send
+
+#2. Find out how exactly client side needs to interact with KDC
 
 LENGTH = 32
 
 IP = "127.0.0.1"
 PORT = 9876
 my_username = input("Username: ")
+my_password = getpass()
+#need to have password "silently" entered
+
+
+#Have a registered list of names in KDC master database?
+#check against what to determine if KDC recognizes the user
+#How do we send user messages to KDC? How is it accessed? In an offline manner?
+#Need password to authenticate users??
+#need to be able to pass password and other system things from this client.py to the KDC function in some way
 
 # Create a socket
 cli = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -21,6 +38,12 @@ cli.setblocking(False)
 # We need to encode username to bytes, then count number of bytes and prepare header of fixed size, that we encode to bytes as well
 username = my_username.encode('utf-8')
 username_header = f"{len(username):<{LENGTH}}".encode('utf-8')
+
+password = bytes(my_password, 'utf-8')
+#password_header = f"{len(password):<{LENGTH}}".encode('utf-8')
+salt = bytes(uuid.uuid4().hex, 'utf-8')
+hashed_password = hashlib.sha512(password + salt).hexdigest()
+#need to send hashed_password to KDC somehow
 cli.send(username_header + username)
 
 while True:
