@@ -68,11 +68,23 @@ final_perm = [
 ]
 
 
+def permute(inp, schedule):
+    perm_msg = 0;
+    for num, i in zip(schedule, range(len(schedule))):
+        perm_msg = perm_msg | ((inp & 1 << num) >> num) << i;
+    return perm_msg;
+
+
+def shrink(inp, sBox):
+    shrink_msg = 0;
+    for num, i in zip(range(0, 48, 6), range(0, 32, 4)):
+        shrink_msg = shrink_msg | sBox[(inp & 0x3F << num) >> num] << i;
+    return shrink_msg;
+
+
 def DES(msg, key, enc):
 
-    perm_msg = 0;
-    for num, i in zip(init_perm, range(len(init_perm))):
-        perm_msg = perm_msg | ((msg & 1 << num) >> num) << i;
+    perm_msg = permute(msg, init_perm);
 
     # Rounds
     for i in range(16):
@@ -83,9 +95,7 @@ def DES(msg, key, enc):
         else:
             shift_key = ((key << (16-i)) | (key >> 56-(16-i))) & 0xFFFFFFFFFFFFFF;
 
-        round_key = 0;
-        for num, j in zip(pc2, range(len(pc2))):
-            round_key = round_key | ((shift_key & 1 << num) >> num) << j;
+        round_key = permute(shift_key, pc2);
 
         # Split msg into two halves
         lhalf = (perm_msg & 0xFFFFFFFF00000000) >> 32;
@@ -93,22 +103,16 @@ def DES(msg, key, enc):
 
         new_lhalf = rhalf << 32;
 
-        new_rhalf = 0;
-        for num, j in zip(expand, range(len(expand))):
-            new_rhalf = new_rhalf | ((rhalf & 1 << num) >> num) << j;
+        new_rhalf = permute(rhalf, expand);
 
         # XOR new_rhalf with round_key
         new_rhalf = new_rhalf ^ round_key;
 
         rhalf = new_rhalf;
-        new_rhalf = 0;
-        for num, j in zip(range(0, 48, 6), range(0, 32, 4)):
-            new_rhalf = new_rhalf | s_box[(rhalf & 0x3F << num) >> num] << j;
+        new_rhalf = shrink(rhalf, s_box);
 
         rhalf = new_rhalf;
-        new_rhalf = 0;
-        for num, j in zip(inter_perm, range(len(inter_perm))):
-            new_rhalf = new_rhalf | ((rhalf & 1 << num) >> num) << j;
+        new_rhalf = permute(rhalf, inter_perm);
 
         # XOR lhalf with new_rhalf
         new_rhalf = new_rhalf ^ lhalf;
@@ -120,9 +124,7 @@ def DES(msg, key, enc):
     new_rhalf = (perm_msg & 0xFFFFFFFF00000000) >> 32;
     msg = new_lhalf | new_rhalf;
 
-    perm_msg = 0;
-    for num, i in zip(final_perm, range(len(final_perm))):
-        perm_msg = perm_msg | ((msg & 1 << num) >> num) << i;
+    perm_msg = permute(msg, final_perm);
 
     return perm_msg;
 
