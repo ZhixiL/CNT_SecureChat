@@ -9,10 +9,13 @@ cur = con.cursor()
 
 # Create table, Only KDC will have access to this database.
 cur.execute('''CREATE TABLE IF NOT EXISTS Users
-            (ID text, key integer)''')
+            (ID text, key text)''')
 
 cur.execute('''CREATE TABLE IF NOT EXISTS Admin
-            (ID text, key integer, password text)''')
+            (ID text, key text, password text)''')
+
+# cur.execute('''Create Table if not exists TGTs 
+#             (ID text, key text, timestamp integer)''')
 
 user_list = [
     ("Alice", keyGeneration()),
