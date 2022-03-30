@@ -205,6 +205,8 @@ def DES(msg, key, enc):
 # Encrypts msg using 3DES
 # Takes string of any length and 192 bit key
 def encrypt(msg, key):
+    if isinstance(key, str):
+        key = int(key)
     # Split 192 bit key into 3 64 bit keys
     key1 = (key & 0xFFFFFFFFFFFFFFFF00000000000000000000000000000000) >> 128;
     key2 = (key & 0x0000000000000000FFFFFFFFFFFFFFFF0000000000000000) >> 64;
@@ -232,6 +234,8 @@ def encrypt(msg, key):
 # Decrypts msg using 3DES
 # Takes string of any length and 192 bit key
 def decrypt(msg, key):
+    if isinstance(key, str):
+        key = int(key)
     # Split 192 bit key into 3 64 bit keys
     key1 = (key & 0xFFFFFFFFFFFFFFFF00000000000000000000000000000000) >> 128;
     key2 = (key & 0x0000000000000000FFFFFFFFFFFFFFFF0000000000000000) >> 64;

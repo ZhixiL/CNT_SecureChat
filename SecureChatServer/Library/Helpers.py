@@ -6,9 +6,3 @@ def keyGeneration():
 
 def getIntKey(input):
     return int(input)
-    
-def fakeDES_Encrypt(message, key):
-    return message
-
-def fakeDES_Decrypt(message, key):
-    return message

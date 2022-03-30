@@ -1,6 +1,7 @@
 import sys, sqlite3, json, time
 from Library.Consts import *
 from Library.Helpers import *
+from Library.Trip_DES import encrypt, decrypt
 
 class KDC:
     con = sqlite3.connect('KDC.db')
@@ -29,7 +30,7 @@ class KDC:
             'timestamp' : timestamp,
             'lifetime' : TGT_SESSION_LENGTH
         }
-        Enc_KDC_Ticket = fakeDES_Encrypt(json.dumps(Plain_KDC_Ticket), self.Masterkey)
+        Enc_KDC_Ticket = encrypt(json.dumps(Plain_KDC_Ticket), self.Masterkey)
         Plain_TGT = {
             'session_key_TGT' : Session_Key_TGT,
             'KDC_Ticket' : Enc_KDC_Ticket,
@@ -37,7 +38,7 @@ class KDC:
             'lifetime' : TGT_SESSION_LENGTH
         }
         # encrypt the TGT with requester's key, share the session key for TGS over.
-        Enc_TGT = fakeDES_Encrypt(json.dumps(Plain_TGT), requester_tuple[1])
+        Enc_TGT = encrypt(json.dumps(Plain_TGT), requester_tuple[1])
         return Enc_TGT
         
         
@@ -46,14 +47,14 @@ class KDC:
     # This funciton takes in a request as a dictionary.
     # TGS stands for Ticket Granting Server
     def TGS(self, request):
-        Plain_TGT = json.loads(fakeDES_Decrypt(request['TGT'], self.Masterkey))
+        Plain_TGT = json.loads(decrypt(request['TGT'], self.Masterkey))
         if (request['ID'] != Plain_TGT['requester_ID']):
             print("ERROR: ID doesn't Match...")
             return -1
         if (Plain_TGT['timestamp']+Plain_TGT['lifetime'] < time.time()):
             print("ERROR: This TGT has expired...")
             return -1
-        if (time.time() - float(fakeDES_Decrypt(request['auth'], Plain_TGT['session_key_TGT'])) > AUTH_TIME):
+        if (time.time() - float(decrypt(request['auth'], Plain_TGT['session_key_TGT'])) > AUTH_TIME):
             print(f"DANGER: AUTH_TIME {AUTH_TIME}s exceeded, request may be intercepted!")
             return -1
         
@@ -76,7 +77,7 @@ class KDC:
             'lifetime' : SESSION_LENGTH
         }
         # use \n to separate between requester ID and the session key.
-        encrypted_TargetTicket = fakeDES_Encrypt(json.dumps(TargetTicket), target_tuple[1])
+        encrypted_TargetTicket = encrypt(json.dumps(TargetTicket), target_tuple[1])
         RequesterTicket = {
             'target_ID' : target_tuple[0],
             'session_key' : Req_Targ_Key, # Requester and Target Symmetric Key
@@ -84,6 +85,6 @@ class KDC:
             'timestamp' : timestamp,
             'lifetime' : SESSION_LENGTH
         }
-        encrypted_RequesterTicket = fakeDES_Encrypt(json.dumps(RequesterTicket), Plain_TGT['session_key_TGT'])
+        encrypted_RequesterTicket = encrypt(json.dumps(RequesterTicket), Plain_TGT['session_key_TGT'])
         return encrypted_RequesterTicket
         
