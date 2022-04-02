@@ -1,11 +1,11 @@
-import socket
-import select
-import sqlite3
+import socket, select, sqlite3, json
+from Library.Consts import *
+from Library.Helpers import *
+from Library.KDC import KDC
 
-LENGTH = 32
-
-IP = "127.0.0.1"
-PORT = 9876
+con = sqlite3.connect('KDC.db')
+cur = con.cursor()
+KDCServer = KDC()
 
 # Create a socket - INET, STREAM, like we did in class
 serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -70,17 +70,21 @@ while True:
             if user is False:
                 continue
 
-            # Add accepted socket to the list and the dictionary
-            sockets_list.append(client_socket)
-            clients[client_socket] = user
-
-            print('Accepted connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))
+            # WARNING: if you need to test new users modify this part, otherwise server won't take new user requets.
+            if checkExist(cur, user) is True:
+                # only add accepted socket to the list and the dictionary when the user exist.
+                sockets_list.append(client_socket)
+                clients[client_socket] = user
+                print('Accepted connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))
+            
 
         # If existing socket is sending a message
+        # !!! Make Sure To Send Message in json dumped Dictionary Form! !!!
         else:
-
             # Receive message
             message = receive_message(notified_socket)
+            # initiate a return dictionary
+            ret = {}
 
             # If False, client disconnected, cleanup
             if message is False:
@@ -88,27 +92,31 @@ while True:
                 # Remove from list and dictionary
                 sockets_list.remove(notified_socket)
                 del clients[notified_socket]
-
                 continue
+                
+            # unpack the message to dictionary
+            msgDict = json.loads(message["data"].decode("utf-8"))
+
+            # Take in the request from user that requests for TGT or 
+            if msgDict['AS'] is not None:
+                ret['TGT'] = KDCServer.AS(msgDict['AS'])
+            elif msgDict['TGS'] is not None:
+                ret['Ticket'] = KDCServer.TGS(msgDict['AS'])
 
             # Get user, so we will know who sent the message
             user = clients[notified_socket]
-
             print(f'Received message from {user["data"].decode("utf-8")}: {message["data"].decode("utf-8")}')
 
-            # Iterate over other clients and broadcast the message
-            for client_socket in clients:
-
-                # But don't sent it to sender
-                if client_socket != notified_socket:
-                    client_socket.send(user['header'] + user['data'] + message['header'] + message['data'])
+            # # Iterate over other clients and broadcast the message
+            # for client_socket in clients:
+            #     # But don't sent it to sender
+            #     if client_socket != notified_socket:
+            #         client_socket.send(user['header'] + user['data'] + message['header'] + message['data'])
 
     # Handle some socket exceptions just in case
     for notified_socket in exception_sockets:
-
         # Remove from list for socket.socket()
         sockets_list.remove(notified_socket)
-
         # Remove from our list of users
         del clients[notified_socket]
 

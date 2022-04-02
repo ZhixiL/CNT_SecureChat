@@ -11,9 +11,9 @@ class KDC:
     def __init__(self):
         self.cur.execute("select * from Admin where ID=:target", {"target": "Admin"})
         self.Masterkey = self.cur.fetchone()[1]
-        
-    # generate a Ticket Generating Ticket for Alice to request service ticket.
-    # AS for Authentication Server.
+
+    # Authentication Server, grant Ticket Granting Ticket
+    # TGT used to request service ticket at TGS.
     def AS(self, request):
         self.cur.execute("select * from Users where ID=:target", {"target": request['ID']})
         requester_tuple = self.cur.fetchone()
@@ -42,10 +42,9 @@ class KDC:
         return Enc_TGT
         
         
-    # Authentication Server, grant Ticket Granting Ticket
-    # Create S ,Compute TGT=K(key of KDC){user,S(user) Derive K(KDC) }
-    # This funciton takes in a request as a dictionary.
-    # TGS stands for Ticket Granting Server
+    # TGS stands for Ticket Granting Server, grant Ticket
+    # Return a json encrypted ticket that only user has the session key from AS can decrypt.
+    # Containing the session key between requester and target
     def TGS(self, request):
         Plain_TGT = json.loads(decrypt(request['TGT'], self.Masterkey))
         if (request['ID'] != Plain_TGT['requester_ID']):
@@ -58,8 +57,6 @@ class KDC:
             print(f"DANGER: AUTH_TIME {AUTH_TIME}s exceeded, request may be intercepted!")
             return -1
         
-        self.cur.execute("select * from Users where ID=:target", {"target": request['ID']})
-        requester_tuple = self.cur.fetchone()
         self.cur.execute("select * from Users where ID=:target", {"target": request['Target']})
         target_tuple = self.cur.fetchone()
         # error checking, ensure we have the target and requester in database.
