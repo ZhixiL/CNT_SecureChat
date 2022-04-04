@@ -28,7 +28,7 @@ print(f"\ntgs Request:{tgsRequest}")
 enc_response = KDC_Server.TGS(tgsRequest)
 # print(f"\nEncrypted TGS response ticket: {enc_response}") # not printable
 if enc_response != -1:
-    print(f"\nEncrypted TGS response ticket: {enc_response}")
+    # print(f"\nEncrypted TGS response ticket: {enc_response}")
     req_ticket = decrypt(enc_response, dec_tgt['session_key_TGT'])
     plain_ticket = json.loads(str(req_ticket)) #convert back to a dictionary
     print(f"\nDecrypted TGS response ticket: {plain_ticket}")

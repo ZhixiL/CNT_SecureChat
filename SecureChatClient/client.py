@@ -3,7 +3,11 @@ import select
 import errno
 import hashlib, uuid
 from getpass import getpass
-import sys
+import sys, json
+
+# These imports are temporary, when the user-end is ready to be deployed independently, following files should be moved to current directory's Library.
+from ..SecureChatServer.Library.Consts import *
+from ..SecureChatServer.Library.Trip_DES import encrypt, decrypt
 
 #5. Algorithm in client side to handle KDC Request and Response - Jordan
      #5.5. ~ensure user messages update upon each send
@@ -19,10 +23,6 @@ import sys
 #   1. User end sends TGS request to server, where server will send back a message with Ticket that can be decrypted with session_key_TGT
 #   2. User uses the session_key_TGT to decrypt message (this has to be decoded with json of course), now user can send it over to target to initialize a session.
 
-LENGTH = 32
-
-IP = "127.0.0.1"
-PORT = 9876
 my_username = input("Username: ")
 my_password = getpass()
 #need to have password "silently" entered
@@ -63,6 +63,9 @@ while True:
     # If message is not empty - send it
     if message:
 
+        ### From Zack: For our implementation purpose, we'll use a json-based dictionary only for message, thus the plain-text will be abandoned.###
+        ### For example, json.dumps the message then encode it with utf-8. Server will decode it then use json.loads to unpack it. ###
+        
         # Encode message to bytes, prepare header and convert to bytes, like for username above, then send
         message = message.encode('utf-8')
         message_header = f"{len(message):<{LENGTH}}".encode('utf-8')
@@ -71,7 +74,7 @@ while True:
     try:
         # Loop over received messages and print them
         while True:
-
+            
             # Receive our "header" containing username length
             username_header = cli.recv(LENGTH)
 

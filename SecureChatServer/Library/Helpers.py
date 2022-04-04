@@ -17,3 +17,4 @@ def checkExist(cur, name):
     else:
         print("The first parameter inputted isn't a cursor object!")
         return False
+    

@@ -32,14 +32,12 @@ print('Listening on ', IP, PORT)
 # Define actions when a message is received
 def receive_message(client_socket):
     try:
-        # We've set the length to 32. We can change it
         message_header = client_socket.recv(LENGTH)
-
         # If we reveived no data, client has closed the connection
         if not len(message_header):
             return False
-
-        # COtherwise, calculate actual length
+        
+        # calculate actual length to extract the message.
         message_length = int(message_header.decode('utf-8').strip())
 
         # separate the  header from the actual message and return
@@ -48,6 +46,14 @@ def receive_message(client_socket):
 
         # This only happens in case of a closed or lost connection
         return False
+
+# take in a dictionary, encode it with it's length as utf-8 then return it.
+def encodeMessage(message):
+    encoded_msg = json.dumps(message).encode('utf-8')
+    # grab the length of encoded msg, pad it until length, then store it as header.
+    message_header = f"{len(encoded_msg):<{LENGTH}}".encode('utf-8')
+    return (message_header + encoded_msg)
+        
 
 while True:
     # call to select to see if we received messages or generated exceptions 
@@ -65,7 +71,7 @@ while True:
 
             # Grab the user's name
             user = receive_message(client_socket)
-
+            
             # If False - client disconnected before first message
             if user is False:
                 continue
@@ -96,22 +102,35 @@ while True:
                 
             # unpack the message to dictionary
             msgDict = json.loads(message["data"].decode("utf-8"))
-
-            # Take in the request from user that requests for TGT or 
-            if msgDict['AS'] is not None:
-                ret['TGT'] = KDCServer.AS(msgDict['AS'])
-            elif msgDict['TGS'] is not None:
-                ret['Ticket'] = KDCServer.TGS(msgDict['AS'])
-
-            # Get user, so we will know who sent the message
+            
             user = clients[notified_socket]
-            print(f'Received message from {user["data"].decode("utf-8")}: {message["data"].decode("utf-8")}')
-
-            # # Iterate over other clients and broadcast the message
-            # for client_socket in clients:
-            #     # But don't sent it to sender
-            #     if client_socket != notified_socket:
-            #         client_socket.send(user['header'] + user['data'] + message['header'] + message['data'])
+            
+            # For message without a target, meaning that it's a request for TGT or Ticket, thus conduct the following then send the requested item back to user.
+            if msgDict['target'] is None:
+                # Take in the request from user that requests for TGT or 
+                if msgDict['AS']:
+                    print(f"AS request from {user['data'].decode('utf-8')}. ")
+                    ret['TGT'] = KDCServer.AS(msgDict['AS'])
+                elif msgDict['TGS']:
+                    print(f"TGS request from {user['data'].decode('utf-8')}. ")
+                    ret['Ticket'] = KDCServer.TGS(msgDict['TGS'])
+                
+                # Iterate over other clients and broadcast the message
+                for client_socket in clients:
+                    # Sends the TGT/Ticket back to client with message.
+                    if client_socket == notified_socket:
+                        client_socket.send(encodeMessage(ret))
+            
+            # If there exist target, redirect message to target:
+            # Secure session is established on the basis that both clients have a shared key, so it doesn't has to be done on the server-end explicitly.
+            else:
+                for client_socket in clients:
+                    # Sends the ticket/encrypted msg to target client.
+                    if client_socket['data'].decode('utf-8') == msgDict['Target']:
+                        client_socket.send(encodeMessage(msgDict))
+                
+                
+                
 
     # Handle some socket exceptions just in case
     for notified_socket in exception_sockets:
