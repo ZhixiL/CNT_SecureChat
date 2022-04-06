@@ -1,4 +1,5 @@
 import socket, select, sqlite3, json
+from time import sleep
 from Library.Consts import *
 from Library.Helpers import *
 from Library.KDC import KDC
@@ -60,6 +61,7 @@ while True:
     # on connected sockets.  
     read_sockets, dummy, exception_sockets = select.select(sockets_list, [], sockets_list)
 
+    sleep(0.1)
     # Iterate over sockets that sent messages
     for notified_socket in read_sockets:
 
@@ -106,12 +108,12 @@ while True:
             user = clients[notified_socket]
             
             # For message without a target, meaning that it's a request for TGT or Ticket, thus conduct the following then send the requested item back to user.
-            if msgDict['target'] is None:
+            if msgDict.get('Target') is None:
                 # Take in the request from user that requests for TGT or 
-                if msgDict['AS']:
+                if msgDict.get('AS') is not None:
                     print(f"AS request from {user['data'].decode('utf-8')}. ")
                     ret['TGT'] = KDCServer.AS(msgDict['AS'])
-                elif msgDict['TGS']:
+                elif msgDict.get('TGS') is not None:
                     print(f"TGS request from {user['data'].decode('utf-8')}. ")
                     ret['Ticket'] = KDCServer.TGS(msgDict['TGS'])
                 
