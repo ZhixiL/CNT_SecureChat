@@ -9,7 +9,7 @@ cur = con.cursor()
 
 # Create table, Only KDC will have access to this database.
 cur.execute('''CREATE TABLE IF NOT EXISTS Users
-            (ID text, key text)''')
+            (ID text, key text, password text)''')
 
 cur.execute('''CREATE TABLE IF NOT EXISTS Admin
             (ID text, key text, password text)''')
@@ -18,15 +18,15 @@ cur.execute('''CREATE TABLE IF NOT EXISTS Admin
 #             (ID text, key text, timestamp integer)''')
 
 user_list = [
-    ("Alice", keyGeneration()),
-    ("Zack", keyGeneration()),
-    ("Bob", keyGeneration())
+    ("Alice", keyGeneration(), "alicepass"),
+    ("Zack", keyGeneration(), "zackpass"),
+    ("Bob", keyGeneration(), "bobpass")
 ]
 admin_list = [
     ("Admin", keyGeneration(), "AdminPass")
 ]
 
-cur.executemany("insert into Users values (?, ?)", user_list)
+cur.executemany("insert into Users values (?, ?, ?)", user_list)
 cur.executemany("insert into Admin values (?, ?, ?)", admin_list)
 
 cur.execute("select * from Users")

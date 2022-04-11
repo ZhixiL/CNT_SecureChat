@@ -7,6 +7,8 @@ def keyGeneration():
 def getIntKey(input):
     return int(input)
 
+# You can use this in the client side, just make sure to use this appropriately
+# with correct cursor object and target name, and there exist Users column in your .db
 def checkExist(cur, name):
     if isinstance(cur, sqlite3.Cursor):
         cur.execute("select * from Users where ID=:target", {"target": name})
@@ -18,3 +20,9 @@ def checkExist(cur, name):
         print("The first parameter inputted isn't a cursor object!")
         return False
     
+# take in a dictionary, encode it with it's length as utf-8 then return it.
+def encodeMessage(message):
+    encoded_msg = json.dumps(message).encode('utf-8')
+    # grab the length of encoded msg, pad it until length, then store it as header.
+    message_header = f"{len(encoded_msg):<{LENGTH}}".encode('utf-8')
+    return (message_header + encoded_msg)

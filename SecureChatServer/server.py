@@ -47,13 +47,6 @@ def receive_message(client_socket):
 
         # This only happens in case of a closed or lost connection
         return False
-
-# take in a dictionary, encode it with it's length as utf-8 then return it.
-def encodeMessage(message):
-    encoded_msg = json.dumps(message).encode('utf-8')
-    # grab the length of encoded msg, pad it until length, then store it as header.
-    message_header = f"{len(encoded_msg):<{LENGTH}}".encode('utf-8')
-    return (message_header + encoded_msg)
         
 
 while True:
@@ -113,9 +106,11 @@ while True:
                 if msgDict.get('AS') is not None:
                     print(f"AS request from {user['data'].decode('utf-8')}. ")
                     ret['TGT'] = KDCServer.AS(msgDict['AS'])
+                    ret['msg'] = "AS-request successful..."
                 elif msgDict.get('TGS') is not None:
                     print(f"TGS request from {user['data'].decode('utf-8')}. ")
                     ret['Ticket'] = KDCServer.TGS(msgDict['TGS'])
+                    ret['msg'] = "TGS Request..."
                 
                 # Iterate over other clients and broadcast the message
                 for client_socket in clients:
