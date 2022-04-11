@@ -3,6 +3,7 @@ from time import sleep
 from Library.Consts import *
 from Library.Helpers import *
 from Library.KDC import KDC
+from Library.DH import DH
 
 con = sqlite3.connect('KDC.db')
 cur = con.cursor()

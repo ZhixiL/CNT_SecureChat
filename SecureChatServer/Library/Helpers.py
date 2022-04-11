@@ -1,4 +1,4 @@
-import random, sqlite3
+import random, sqlite3, json
 from Library.Consts import *
 
 def keyGeneration():
