@@ -4,6 +4,7 @@ from Library.Consts import *
 from Library.Helpers import *
 from Library.KDC import KDC
 from Library.DH import DH
+from SecureChatServer.Library.Trip_DES import decrypt
 
 con = sqlite3.connect('KDC.db')
 cur = con.cursor()
@@ -73,7 +74,7 @@ while True:
                 continue
 
             # WARNING: if you need to test new users modify this part, otherwise server won't take new user requets.
-            if checkExist(cur, user) is True:
+            if checkExist(cur, user['data'].decode('utf-8')) is True:
                 # only add accepted socket to the list and the dictionary when the user exist.
                 sockets_list.append(client_socket)
                 clients[client_socket] = user

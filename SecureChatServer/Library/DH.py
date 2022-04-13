@@ -1,23 +1,19 @@
 # Diffie Hellman implementation
+from ast import Num
 from random import random
 from Library.Consts import *
 
 class DH:
-    def __init__(self, randomG = 0, randomP = 0):
-        self.G = self.genRandomG() if randomG == 0 else randomG
-        self.P = self.genRandomP() if randomP == 0 else randomP
-        self.pvKey = self.genPrivateKey()
+    def __init__(self, inputG = 0, inputP = 0):
+        # make sure that G is less than p.
+        self.G = self.genPrime(DH_KEY_LENGTH) if inputG == 0 else inputG
+        self.P = self.genPrime(DH_KEY_LENGTH+1) if inputP == 0 else inputP
+        self.pvKey = self.genPrivateKey(DH_KEY_LENGTH)
         self.puKey = self.genPublicKey()
         self.symKey = 0
-       
-    def genRandomG():
-        return GH_KEY_LENGTH
-    
-    def genRandomP():
-        return GH_KEY_LENGTH
         
-    def genPrivateKey():
-        return GH_KEY_LENGTH
+    def genPrivateKey(length):
+        return (random.randrange(2**(length-1)+1, 2**length-1))
     
     def genPublicKey(self):
         return (self.randomG ** self.pvKey) % self.P

@@ -1,6 +1,6 @@
 # Sets up the SQLite3 Database
 # Function - Establish Database for testing purpose.
-import sqlite3, datetime, time, sys, os
+import sqlite3
 from Library.Helpers import keyGeneration
 
 con = sqlite3.connect('KDC.db')
@@ -8,10 +8,11 @@ con = sqlite3.connect('KDC.db')
 cur = con.cursor()
 
 # Create table, Only KDC will have access to this database.
-cur.execute('''CREATE TABLE IF NOT EXISTS Users
+# Prevent multiple creation of user/admin.
+cur.execute('''CREATE TABLE Users
             (ID text, key text, password text)''')
 
-cur.execute('''CREATE TABLE IF NOT EXISTS Admin
+cur.execute('''CREATE TABLE Admin
             (ID text, key text, password text)''')
 
 # cur.execute('''Create Table if not exists TGTs 

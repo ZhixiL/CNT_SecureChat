@@ -26,3 +26,13 @@ def encodeMessage(message):
     # grab the length of encoded msg, pad it until length, then store it as header.
     message_header = f"{len(encoded_msg):<{LENGTH}}".encode('utf-8')
     return (message_header + encoded_msg)
+
+def genPrime(length):
+    # generate a random number that's around 2^length
+    randnum = (random.randrange(2**(length-1)+1, 2**length-1))
+    while (checkPrime(randnum)):
+        randnum = (random.randrange(2**(length-1)+1, 2**length-1))
+
+# still implementing...
+def checkPrime(num):
+    return 0
