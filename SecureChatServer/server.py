@@ -3,8 +3,7 @@ from time import sleep
 from Library.Consts import *
 from Library.Helpers import *
 from Library.KDC import KDC
-from Library.DH import DH
-from SecureChatServer.Library.Trip_DES import decrypt
+import rsa
 
 con = sqlite3.connect('KDC.db')
 cur = con.cursor()
@@ -29,6 +28,10 @@ sockets_list = [serv]
 
 # Maintain a dictionary of connected clients 
 clients = {}
+
+# generate an public/private key pair for current session
+# for KDC private key exchange purpose.
+(pubkey, privkey) = rsa.newkeys(RSA_KEY_LENGTH)
 
 print('Listening on ', IP, PORT)
 
@@ -56,7 +59,6 @@ while True:
     # on connected sockets.  
     read_sockets, dummy, exception_sockets = select.select(sockets_list, [], sockets_list)
 
-    sleep(0.1)
     # Iterate over sockets that sent messages
     for notified_socket in read_sockets:
 
@@ -102,31 +104,67 @@ while True:
             
             user = clients[notified_socket]
             
+            # RSA Authentication Part
+            if msgDict.get('RSA_PublicKeyRequest'):
+                ret['pubkey'] = pubkey
+            
+            elif msgDict.get('RSA_Request_KDC_PrivKey'):
+                requester = msgDict['ID']
+                requester_pubkey = msgDict['requester_pubkey']
+                if (checkExist(cur, requester)):
+                    pswd = rsa.decrypt(msgDict['EncPswd'], privkey).decode('utf-8')
+                    cur.execute("select * from Users where ID=:target", {"target": requester})
+                    requester_tuple = cur.fetchone()
+                    if requester_tuple[2] == pswd:
+                        ret['KDC_prikey'] = rsa.encrypt(requester_tuple[1].encode('utf-8'), requester_pubkey)
+                        ret['msg'] = "Password succesfully authenticated, KDC_prikey is returned."
+                        ret['status'] = True
+                    else:
+                        ret['msg'] = "Password is incorrect!"
+                        ret['status'] = False
+            
+            # KDC Part
             # For message without a target, meaning that it's a request for TGT or Ticket, thus conduct the following then send the requested item back to user.
-            if msgDict.get('Target') is None:
+            elif msgDict.get('Target') is None:
                 # Take in the request from user that requests for TGT or 
                 if msgDict.get('AS') is not None:
                     print(f"AS request from {user['data'].decode('utf-8')}. ")
                     ret['TGT'] = KDCServer.AS(msgDict['AS'])
                     ret['msg'] = "AS-request successful..."
+                    ret['status'] = False if ret['TGT'] == -1 else True
+                        
+                    
                 elif msgDict.get('TGS') is not None:
                     print(f"TGS request from {user['data'].decode('utf-8')}. ")
                     ret['Ticket'] = KDCServer.TGS(msgDict['TGS'])
                     ret['msg'] = "TGS Request..."
+                    ret['status'] = False if ret['Ticket'] == -1 else True
                 
-                # Iterate over other clients and broadcast the message
                 for client_socket in clients:
                     # Sends the TGT/Ticket back to client with message.
                     if client_socket == notified_socket:
                         client_socket.send(encodeMessage(ret))
             
+            # Bypass message to the client.
             # If there exist target, redirect message to target:
             # Secure session is established on the basis that both clients have a shared key, so it doesn't has to be done on the server-end explicitly.
             else:
+                status = False
                 for client_socket in clients:
                     # Sends the ticket/encrypted msg to target client.
                     if client_socket['data'].decode('utf-8') == msgDict['Target']:
                         client_socket.send(encodeMessage(msgDict))
+                        status = True
+                if status is False:
+                    # sends the false status back to the client, where client should display this message to the user.
+                    ret['status'] = False
+                    ret['msg'] = "Your message/ticket is failed to deliver as the target is no longer online/exist."
+                    for client_socket in clients:
+                        # Sends the false message back to user.
+                        if client_socket == notified_socket:
+                            client_socket.send(encodeMessage(ret))
+                        
+                        
                 
                 
                 

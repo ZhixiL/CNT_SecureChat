@@ -6,7 +6,6 @@ The approach KDC, where we'll establish a central server for a secure shared key
 
 We will also have an interface that allows users to log in with a username and password which we will hash and manage within a database. Potentially, we may add features such as 2 - Factor Authentication or the ability to send photos if time permits.
 
-We will be using:
-Flask
-SQLite
-Python
+Additional Library:
+python RSA library, install by: pip install rsa
+

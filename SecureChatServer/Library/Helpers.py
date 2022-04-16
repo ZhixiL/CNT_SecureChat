@@ -30,9 +30,35 @@ def encodeMessage(message):
 def genPrime(length):
     # generate a random number that's around 2^length
     randnum = (random.randrange(2**(length-1)+1, 2**length-1))
-    while (checkPrime(randnum)):
+    while (checkPrime(randnum) is False):
         randnum = (random.randrange(2**(length-1)+1, 2**length-1))
 
-# still implementing...
+# fermat's primality test
 def checkPrime(num):
-    return 0
+    # test cases for primality test, which are all primes.
+    testers = {2, 3, 5}
+    #now conduct primality check
+    for p in testers:
+        # check if p**(num-1) % num != 1
+        if powModRecur(p, num-1, num) != 1:
+            return False
+    return True
+
+# Modular exponentiation that utilize multiplicative property.
+def powMod(a, b, n):
+    ret = 1
+    for tmp in range(b):
+        ret = ret * a % n
+    return ret
+
+# Recursive implementation of powMod
+def powModRecur(base, power, n):
+    # separate base into equal amount of left and right
+    l = int(power/2)
+    r = power - l
+    # this is base case, where l and r are small enough to process.
+    if (l < 3 or r < 3):
+        return (powMod(base, l, n) * powMod(base, r, n)) % n
+    # this is the recursive step where l and r still needs to be broken down.
+    else:
+        return (powModRecur(base, l, n) * powModRecur(base, r, n)) % n

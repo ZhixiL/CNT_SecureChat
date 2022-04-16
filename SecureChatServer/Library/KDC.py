@@ -1,4 +1,4 @@
-import sys, sqlite3, json, time
+import sqlite3, json, time
 from Library.Consts import *
 from Library.Helpers import *
 from Library.Trip_DES import encrypt, decrypt
