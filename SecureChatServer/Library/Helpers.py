@@ -1,4 +1,5 @@
-import random, sqlite3, json
+from http import client
+import random, sqlite3, json, rsa
 from Library.Consts import *
 
 def keyGeneration():
@@ -62,3 +63,27 @@ def powModRecur(base, power, n):
     # this is the recursive step where l and r still needs to be broken down.
     else:
         return (powModRecur(base, l, n) * powModRecur(base, r, n)) % n
+    
+    
+
+
+# CLIENT SIDE HELPER
+(client_pukey, client_privkey) = rsa.newkeys(RSA_KEY_LENGTH)
+serverKey = 0
+my_username = "temp"
+
+def get_server_pukey_request():
+    return {
+        'RSA_PublicKeyRequest' : True
+    }
+    
+
+def prep_RSA_auth_request(pswd):
+    ret = {
+        'requester_pubkey' : client_pukey,
+        'ID' : my_username
+    }
+    ret['EncPswd'] = rsa.encrypt(pswd.encode('utf-8'), serverKey)
+    return ret
+    
+    

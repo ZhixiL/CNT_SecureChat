@@ -1,9 +1,8 @@
-import socket, select, sqlite3, json
+import socket, select, sqlite3, json, rsa
 from time import sleep
 from Library.Consts import *
 from Library.Helpers import *
 from Library.KDC import KDC
-import rsa
 
 con = sqlite3.connect('KDC.db')
 cur = con.cursor()
@@ -84,7 +83,6 @@ while True:
             
 
         # If existing socket is sending a message
-        # !!! Make Sure To Send Message in json dumped Dictionary Form! !!!
         else:
             # Receive message
             message = receive_message(notified_socket)
@@ -104,30 +102,37 @@ while True:
             
             user = clients[notified_socket]
             
-            # RSA Authentication Part
-            if msgDict.get('RSA_PublicKeyRequest'):
-                ret['pubkey'] = pubkey
             
-            elif msgDict.get('RSA_Request_KDC_PrivKey'):
-                requester = msgDict['ID']
-                requester_pubkey = msgDict['requester_pubkey']
-                if (checkExist(cur, requester)):
-                    pswd = rsa.decrypt(msgDict['EncPswd'], privkey).decode('utf-8')
+            # For message without a target, meaning that it's a server request
+            if msgDict.get('Target') is None:
+                # RSA Authentication Part
+                if msgDict.get('RSA_PublicKeyRequest') is not None:
+                    ret['pubkey_e'] = pubkey.e
+                    ret['pubkey_n'] = pubkey.n
+                
+                elif msgDict.get('RSA_Request_KDC_PrivKey') is not None:
+                    requester = msgDict['ID']
+                    requester_pubkey = rsa.PublicKey(msgDict['requester_pubkey_n'], msgDict['requester_pubkey_e'])
+                    # if (checkExist(cur, requester)):
+                    EncPswd = msgDict['EncPswd'].to_bytes(msgDict['PswdLen'], byteorder='big')
+                    pswd = rsa.decrypt(EncPswd, privkey).decode('utf-8')
                     cur.execute("select * from Users where ID=:target", {"target": requester})
                     requester_tuple = cur.fetchone()
                     if requester_tuple[2] == pswd:
-                        ret['KDC_prikey'] = rsa.encrypt(requester_tuple[1].encode('utf-8'), requester_pubkey)
+                        print(requester_tuple[1])
+                        EncPrivkey = rsa.encrypt(requester_tuple[1].encode('utf-8'), requester_pubkey)
+                        print(f"encPrivKey {EncPrivkey}")
+                        ret['KDC_prikey'] = int.from_bytes(EncPrivkey, "big")
+                        ret['EncLen'] = len(EncPrivkey)
                         ret['msg'] = "Password succesfully authenticated, KDC_prikey is returned."
                         ret['status'] = True
                     else:
                         ret['msg'] = "Password is incorrect!"
                         ret['status'] = False
-            
-            # KDC Part
-            # For message without a target, meaning that it's a request for TGT or Ticket, thus conduct the following then send the requested item back to user.
-            elif msgDict.get('Target') is None:
+                
+                # KDC Part
                 # Take in the request from user that requests for TGT or 
-                if msgDict.get('AS') is not None:
+                elif msgDict.get('AS') is not None:
                     print(f"AS request from {user['data'].decode('utf-8')}. ")
                     ret['TGT'] = KDCServer.AS(msgDict['AS'])
                     ret['msg'] = "AS-request successful..."
@@ -137,12 +142,14 @@ while True:
                 elif msgDict.get('TGS') is not None:
                     print(f"TGS request from {user['data'].decode('utf-8')}. ")
                     ret['Ticket'] = KDCServer.TGS(msgDict['TGS'])
-                    ret['msg'] = "TGS Request..."
+                    ret['msg'] = "TGS Request Complete..."
                     ret['status'] = False if ret['Ticket'] == -1 else True
                 
                 for client_socket in clients:
                     # Sends the TGT/Ticket back to client with message.
                     if client_socket == notified_socket:
+                        # print(f"server request is responded with the following:\n{ret}")
+                        # print(f"length is {len(json.dumps(ret))}")
                         client_socket.send(encodeMessage(ret))
             
             # Bypass message to the client.
@@ -150,9 +157,10 @@ while True:
             # Secure session is established on the basis that both clients have a shared key, so it doesn't has to be done on the server-end explicitly.
             else:
                 status = False
+                print(notified_socket)
                 for client_socket in clients:
                     # Sends the ticket/encrypted msg to target client.
-                    if client_socket['data'].decode('utf-8') == msgDict['Target']:
+                    if clients[client_socket]['data'].decode('utf-8') == msgDict['Target']:
                         client_socket.send(encodeMessage(msgDict))
                         status = True
                 if status is False:
