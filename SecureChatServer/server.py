@@ -52,12 +52,11 @@ def receive_message(client_socket):
         # This only happens in case of a closed or lost connection
         return False
         
-
+newUserFlag = False
 while True:
     # call to select to see if we received messages or generated exceptions 
     # on connected sockets.  
     read_sockets, dummy, exception_sockets = select.select(sockets_list, [], sockets_list)
-    newUserFlag = False
 
     # Iterate over sockets that sent messages
     for notified_socket in read_sockets:
@@ -77,6 +76,9 @@ while True:
 
             if checkExist(cur, user['data'].decode('utf-8')) is False:
                 newUserFlag = True
+                print("This is a new user...")
+            else:
+                newUserFlag = False
             sockets_list.append(client_socket)
             clients[client_socket] = user
             print('Accepted connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))
@@ -116,9 +118,11 @@ while True:
                     EncPswd = msgDict['EncPswd'].to_bytes(msgDict['PswdLen'], byteorder='big')
                     pswd = rsa.decrypt(EncPswd, privkey).decode('utf-8')
                     requester_tuple = tuple()
-                    if newUserFlag is True: # Registration
+                    if newUserFlag: # Registration
+                        print("This is a new user")
                         requester_tuple = (msgDict['ID'], keyGeneration(), pswd)
                         cur.execute("insert into Users values (?, ?, ?)", requester_tuple)
+                        con.commit()
                     else: # Existing User Log-in
                         cur.execute("select * from Users where ID=:target", {"target": requester})
                         requester_tuple = cur.fetchone()
