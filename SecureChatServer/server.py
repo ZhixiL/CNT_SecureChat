@@ -1,3 +1,4 @@
+from ast import Not
 import socket, select, sqlite3, json, rsa
 from time import sleep
 from Library.Consts import *
@@ -44,6 +45,8 @@ def receive_message(client_socket):
         
         # calculate actual length to extract the message.
         message_length = int(message_header.decode('utf-8').strip())
+        if message_length == 0:
+            return False
 
         # separate the  header from the actual message and return
         return {'header': message_header, 'data': client_socket.recv(message_length)}
@@ -71,17 +74,15 @@ while True:
             user = receive_message(client_socket)
             
             # If False - client disconnected before first message
-            if user is False:
-                continue
-
-            if checkExist(cur, user['data'].decode('utf-8')) is False:
-                newUserFlag = True
-                print("This is a new user...")
-            else:
-                newUserFlag = False
-            sockets_list.append(client_socket)
-            clients[client_socket] = user
-            print('Accepted connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))
+            if user:
+                if checkExist(cur, user['data'].decode('utf-8')) is False:
+                    newUserFlag = True
+                    print("This is a new user...")
+                else:
+                    newUserFlag = False
+                sockets_list.append(client_socket)
+                clients[client_socket] = user
+                print('Accepted connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))
             
 
         # If existing socket is sending a message

@@ -166,6 +166,12 @@ while True:  # Want to process messages from the server first
             my_pswd = input("Password: ")
             username = my_username.strip().encode('utf-8')
             username_header = f"{len(username):<{LENGTH}}".encode('utf-8')
+            
+            # Reset the connection
+            cli = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            cli.connect((IP, PORT))
+            cli.setblocking(False)
+            
             cli.send(username_header + username)
             sendDict(prep_RSA_auth_request(my_pswd))
 
