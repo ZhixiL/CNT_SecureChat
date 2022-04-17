@@ -57,6 +57,7 @@ while True:
     # call to select to see if we received messages or generated exceptions 
     # on connected sockets.  
     read_sockets, dummy, exception_sockets = select.select(sockets_list, [], sockets_list)
+    newUserFlag = False
 
     # Iterate over sockets that sent messages
     for notified_socket in read_sockets:
@@ -74,12 +75,11 @@ while True:
             if user is False:
                 continue
 
-            # WARNING: if you need to test new users modify this part, otherwise server won't take new user requets.
-            if checkExist(cur, user['data'].decode('utf-8')) is True:
-                # only add accepted socket to the list and the dictionary when the user exist.
-                sockets_list.append(client_socket)
-                clients[client_socket] = user
-                print('Accepted connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))
+            if checkExist(cur, user['data'].decode('utf-8')) is False:
+                newUserFlag = True
+            sockets_list.append(client_socket)
+            clients[client_socket] = user
+            print('Accepted connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))
             
 
         # If existing socket is sending a message
@@ -113,18 +113,25 @@ while True:
                 elif msgDict.get('RSA_Request_KDC_PrivKey') is not None:
                     requester = msgDict['ID']
                     requester_pubkey = rsa.PublicKey(msgDict['requester_pubkey_n'], msgDict['requester_pubkey_e'])
-                    # if (checkExist(cur, requester)):
                     EncPswd = msgDict['EncPswd'].to_bytes(msgDict['PswdLen'], byteorder='big')
                     pswd = rsa.decrypt(EncPswd, privkey).decode('utf-8')
-                    cur.execute("select * from Users where ID=:target", {"target": requester})
-                    requester_tuple = cur.fetchone()
+                    requester_tuple = tuple()
+                    if newUserFlag is True: # Registration
+                        requester_tuple = (msgDict['ID'], keyGeneration(), pswd)
+                        cur.execute("insert into Users values (?, ?, ?)", requester_tuple)
+                    else: # Existing User Log-in
+                        cur.execute("select * from Users where ID=:target", {"target": requester})
+                        requester_tuple = cur.fetchone()
                     if requester_tuple[2] == pswd:
                         print(requester_tuple[1])
                         EncPrivkey = rsa.encrypt(requester_tuple[1].encode('utf-8'), requester_pubkey)
                         print(f"encPrivKey {EncPrivkey}")
                         ret['KDC_prikey'] = int.from_bytes(EncPrivkey, "big")
                         ret['EncLen'] = len(EncPrivkey)
-                        ret['msg'] = "Password succesfully authenticated, KDC_prikey is returned."
+                        if newUserFlag:
+                            ret['msg'] = "Registration successful!"
+                        else:
+                            ret['msg'] = "Password succesfully authenticated, KDC_prikey is returned."
                         ret['status'] = True
                     else:
                         ret['msg'] = "Password is incorrect!"
