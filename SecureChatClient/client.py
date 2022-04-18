@@ -1,8 +1,6 @@
-import socket, select, errno
-import hashlib, uuid
-from getpass import getpass
+import socket, errno
 import sys, json, time, rsa
-from Library.GUI import *
+import Library.GUI as GUI
 from Library.Consts import *
 from Library.Trip_DES import encrypt, decrypt
 
@@ -13,7 +11,8 @@ cli = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # Connect to a given ip and port
 cli.connect((IP, PORT))
 
-# Set connection to non-blocking state, so .recv() call won;t block, just return some exception we'll handle
+# Set connection to non-blocking state, so .recv() call won't block
+# Just return some exception we'll handle
 cli.setblocking(False)
 
 sockets_list = {IP, PORT}
@@ -22,7 +21,7 @@ sockets_list = {IP, PORT}
 # Make dictionary to hold connected clients
 def sendDict(dictionary):
     encoded_dict = json.dumps(dictionary).encode('utf-8')
-    # grab the length of encoded msg, pad it until length, then store it as header.
+    # Grab the length of encoded msg, pad it until length, then store it as header.
     header = f"{len(encoded_dict):<{LENGTH}}".encode('utf-8')
     cli.send(header + encoded_dict)
     time.sleep(0.1)  # give server some time to get back...
@@ -74,18 +73,31 @@ username = my_username.strip().encode('utf-8')
 username_header = f"{len(username):<{LENGTH}}".encode('utf-8')
 cli.send(username_header + username)
 
+gui = GUI.GUI()
+
 while True:  # Want to process messages from the server first
     try:
         while True:
-            window.update()
+            gui.update()
 
             # Automatically sends the request to server if these are missing.
             if serverPuKey == 0:
                 sendDict(prep_server_pukey_request())
             elif KDC_privkey != 0 and currentTarget is None:  # Modify switch user here...
-                currentTarget = (input("Who you wants to talk to? (Enter Blank to just wait for other people connect with you...))\n>> "))
-                if currentTarget != "":
-                    sendDict(prep_AS_request())
+                gui.successful_login()
+                if len(gui.get_request()) != 0 and gui.get_request() != my_username:
+                    currentTarget = gui.get_request()
+                if currentTarget is not None:
+                    if (ActiveSessionKeys.get(currentTarget) is not None):
+                        gui.successful_request(currentTarget)
+                    else:
+                        sendDict(prep_AS_request())
+            elif currentTarget is not None and gui.get_challenger() == "":
+                print(0)
+                currentTarget = None
+                print(-1)
+                gui.failed_request()
+                print(-2)
 
             message_header = cli.recv(LENGTH)
             message_length = int(message_header.decode('utf-8').strip())
@@ -99,7 +111,8 @@ while True:  # Want to process messages from the server first
             if serverPuKey == 0 and Server_reply.get('pubkey_e'):
                 serverPuKey = rsa.PublicKey(Server_reply['pubkey_n'], Server_reply['pubkey_e'])
             if KDC_privkey == 0 and Server_reply.get('KDC_prikey'):
-                EncPswd = Server_reply['KDC_prikey'].to_bytes(Server_reply['EncLen'], byteorder='big')
+                EncPswd = Server_reply['KDC_prikey']\
+                    .to_bytes(Server_reply['EncLen'], byteorder='big')
                 KDC_privkey = rsa.decrypt(EncPswd, client_privkey).decode('utf-8')
 
             # KDC Ticket Getting Stage
@@ -135,10 +148,12 @@ while True:  # Want to process messages from the server first
                         }
                         # Sends the ticket to the target through server.
                         sendDict(TicketToTarget)
+                        gui.successful_request(currentTarget)
                     else:
                         print("Ticket request failed, enter target again.")
                         # Reset the current target...
                         currentTarget = None
+                        gui.failed_request()
 
             elif (Server_reply.get('Target')):
                 # This case someone else has sent a ticket over
@@ -146,7 +161,8 @@ while True:  # Want to process messages from the server first
                 if Server_reply.get('Ticket'):
                     dec_ticket = json.loads(decrypt(Server_reply['Ticket'], KDC_privkey))
                     if dec_ticket.get('requester_ID') == Server_reply['ID']:
-                        ActiveSessionKeys[dec_ticket.get('requester_ID')] = dec_ticket['session_key']
+                        ActiveSessionKeys[dec_ticket.get('requester_ID')]\
+                            = dec_ticket['session_key']
                         print(f"We can chat with {Server_reply['ID']} now!")
                 # This is a plain encrypted message sent from other client.
                 # We want to make sure we have their session key to decrypt the message.
@@ -154,7 +170,9 @@ while True:  # Want to process messages from the server first
                 elif ActiveSessionKeys.get(Server_reply.get('ID')):
                     enc_message = Server_reply['enc_message']
                     message = decrypt(enc_message, ActiveSessionKeys[Server_reply.get('ID')])
-                    print(f"{Server_reply.get('ID')}: {message}")
+                    gui.receive_message(Server_reply.get('ID'), message)
+            if (KDC_privkey == 0 and len(gui.get_user_pass()) != 0):
+                gui.failed_login()
 
     except IOError as e:
         # This is normal on non blocking connections
@@ -164,13 +182,13 @@ while True:  # Want to process messages from the server first
             print('Reading error: {}'.format(str(e)))
             sys.exit()
 
-        if KDC_privkey == 0:
+        if KDC_privkey == 0 and len(gui.get_user_pass()) != 0:
             cli.send(f"{0:<{LENGTH}}".encode('utf-8'))
-            my_username = input("Username: ")
-            my_pswd = input("Password: ")
+            my_username = gui.get_user_pass()[0]
+            my_pswd = gui.get_user_pass()[1]
             username = my_username.strip().encode('utf-8')
             username_header = f"{len(username):<{LENGTH}}".encode('utf-8')
-            
+
             # Reset the connection
             cli = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             cli.connect((IP, PORT))
@@ -179,20 +197,26 @@ while True:  # Want to process messages from the server first
             cli.send(username_header + username)
             sendDict(prep_RSA_auth_request(my_pswd))
 
-        # We just did not receive anything
-        time.sleep(0.2)  # Avoid busy waiting...
-
         if len(ActiveSessionKeys) > 0:
-            print("ActiveUsers: {", end='')
-            for key in ActiveSessionKeys:
-                print(f" {key}", end="")
-            target = input("}. Enter Target(Blank to refresh for message.):\n>> ")
-            if (ActiveSessionKeys.get(target) is not None):
-                sendDict({
-                    'ID': my_username,
-                    'Target': target,
-                    'enc_message': encrypt(input('Message: '), ActiveSessionKeys[target])
-                })
+            # print("ActiveUsers: {", end='')
+            # for key in ActiveSessionKeys:
+            #     print(f" {key}", end="")
+            if(gui.get_disconnected()):
+                message = ""
+                for key in ActiveSessionKeys:
+                    sendDict({
+                        'ID': my_username,
+                        'Target': key,
+                        'enc_message': encrypt(message, ActiveSessionKeys[currentTarget])
+                    })
+            else:
+                message = gui.get_outbox()
+                if (ActiveSessionKeys.get(currentTarget) is not None and message != ""):
+                    sendDict({
+                        'ID': my_username,
+                        'Target': currentTarget,
+                        'enc_message': encrypt(message, ActiveSessionKeys[currentTarget])
+                    })
         continue
 
     except Exception as e:

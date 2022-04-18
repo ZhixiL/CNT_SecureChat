@@ -1,119 +1,201 @@
 from tkinter import *
 
-LOGIN_FRAME = 0
-HOME_FRAME = 1
 
-window = Tk()
-window.title("Chat Client")
-window.minsize(500, 500)
-frames = list()
+class ChatFrame(Frame):
 
-############# LOGIN #############
-frames.append(Frame(window))
+    def __init__(self, challenger, enter, esc):
+        super(ChatFrame, self).__init__()
 
-username_label = Label(frames[LOGIN_FRAME], text="Username\t\t").place(relx=.5, rely=.4, anchor="e")
-input_username = StringVar()
-username_input = Entry(frames[LOGIN_FRAME], text=input_username)
-username_input.place(relx=.5, rely=.4, anchor="center")
+        if(enter is not None and esc is not None):
+            ########## CHAT SCREEN ##########
+            self.messages = Text(self, state="disabled")
+            self.chat_scroll = Scrollbar(command=self.messages.yview)
+            self.messages["yscrollcommand"] = self.chat_scroll.set
+            self.messages.pack(expand=True, fill=BOTH)
 
-password_label = Label(frames[LOGIN_FRAME], text="Password\t\t").place(relx=.5, rely=.5, anchor="e")
-input_password = StringVar()
-password_input = Entry(frames[LOGIN_FRAME], text=input_password, show="*")
-password_input.place(relx=.5, rely=.5, anchor="center")
+            self.input_message = StringVar()
+            self.chat_input = Entry(self, text=self.input_message)
+            self.chat_input.pack(side=BOTTOM, fill=X)
 
-login_button = Button(frames[LOGIN_FRAME], text="Login")
-login_button.place(relx=.5, rely=.6, anchor="center")
+            self.chat_input.bind("<Return>", enter)
+            self.chat_input.bind("<Escape>", esc)
 
-current_frame = LOGIN_FRAME
-frames[current_frame].pack(expand=True, fill=BOTH)
-user_pass = ()
-#################################
+            self.challenger = challenger
+            #################################
 
-########## CHAT SELECT ##########
-frames.append(Frame(window))
+    def get_challenger(self):
+        return self.challenger
 
-Scrollbar(frames[HOME_FRAME], orient="vertical").pack(side=RIGHT, fill=Y)
-chat_buttons = [Button(frames[HOME_FRAME], text="Chat with %s" % "Bob")]
-for i in range(len(chat_buttons)):
-    chat_buttons[i].pack(side=TOP, fill=X)
-#################################
+    def get_input(self):
+        return self.chat_input.get().rstrip()
 
-########## CHAT SCREEN ##########
-frames.append(Frame(window))
+    def set_focus(self):
+        # Print connected message at beginning of chat
+        if (self.messages.compare("end-1c", "==", "1.0")):
+            self.messages.configure(state='normal')
+            self.messages.insert(END, "Connected to %s\n" % self.challenger)
+            self.messages.configure(state='disabled')
+        self.messages.see("end")
+        self.chat_input.focus_set()
 
-user = challenger = ""
-messages = Text(frames[2], state="disabled")
-chat_scroll = Scrollbar(command=messages.yview)
-messages["yscrollcommand"] = chat_scroll.set
-messages.pack(expand=True, fill=BOTH)
+    def send_message(self, user):
+        self.messages.configure(state='normal')
+        self.messages.insert(END, "%s: %s\n" % (user, self.chat_input.get().rstrip()))
+        self.messages.see("end")
+        self.messages.configure(state='disabled')
+        self.input_message.set("")
 
-input_message = StringVar()
-chat_input = Entry(frames[2], text=input_message)
-chat_input.pack(side=BOTTOM, fill=X)
-#################################
+    def recieve_message(self, message):
+        self.messages.configure(state='normal')
+        if (message == ""):
+            self.messages.insert(END, "%s is now offline.\n" % self.challenger)
+        else:
+            self.messages.insert(END, "%s: %s\n" % (self.challenger, message))
+        self.messages.see("end")
+        self.messages.configure(state='disabled')
 
+class GUI:
 
-def login_attempt(event):
-    global user_pass
-    user_pass = (username_input.get().strip(), password_input.get().strip())
-    input_username.set("")
-    input_password.set("")
+    def __init__(self):
+        self.disconnected = False
 
+        self.LOGIN_FRAME = 0
+        self.HOME_FRAME = 1
 
-def successful_login():
-    global current_frame
-    frames[current_frame].pack_forget()
-    current_frame = HOME_FRAME
-    frames[current_frame].pack(expand=True, fill=BOTH)
+        self.window = Tk()
+        self.window.title("Chat Client")
+        self.window.minsize(500, 500)
+        self.window.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+        self.frames = list()
 
-def load_chat(event, frame_num, other_user):
-    global challenger, current_frame
-    challenger = other_user
-    frames[current_frame].pack_forget()
-    current_frame = frame_num
-    frames[current_frame].pack(expand=True, fill=BOTH)
-    if(messages.compare("end-1c", "==", "1.0")):  # Print connected message at beginning of chat
-        messages.configure(state='normal')
-        messages.insert(END, "Connected to %s\n" % challenger)
-        messages.configure(state='disabled')
-    messages.see("end")
-    chat_input.focus_set()
+        ############# LOGIN #############
+        self.frames.append(ChatFrame(self.window, None, None))
 
+        Label(self.frames[self.LOGIN_FRAME], text="Username\t\t")\
+            .place(relx=.5, rely=.4, anchor="e")
+        self.input_username = StringVar()
+        self.username_input = Entry(self.frames[self.LOGIN_FRAME], text=self.input_username)
+        self.username_input.place(relx=.5, rely=.4, anchor="center")
 
-def return_home(event):
-    global current_frame
-    frames[current_frame].pack_forget()
-    current_frame = HOME_FRAME
-    frames[current_frame].pack(expand=True, fill=BOTH)
+        Label(self.frames[self.LOGIN_FRAME], text="Password\t\t")\
+            .place(relx=.5, rely=.5, anchor="e")
+        self.input_password = StringVar()
+        self.password_input = Entry(self.frames[self.LOGIN_FRAME],
+                                    text=self.input_password, show="*")
+        self.password_input.place(relx=.5, rely=.5, anchor="center")
 
+        self.login_button = Button(self.frames[self.LOGIN_FRAME], text="Login")
+        self.login_button.place(relx=.5, rely=.6, anchor="center")
 
-def send_message(event):
-    input_get = chat_input.get().rstrip()
-    if(input_get != ""):
-        messages.configure(state='normal')
-        messages.insert(END, "%s: %s\n" % (user, input_get))
-        messages.see("end")
-        messages.configure(state='disabled')
-    input_message.set("")
-    receive_message("Automatic response for testing")
-    return "break"
+        self.current_frame = self.LOGIN_FRAME
+        self.frames[self.current_frame].pack(expand=True, fill=BOTH)
 
+        self.password_input.bind("<Return>", self.login_attempt)
+        self.login_button.bind("<Button-1>", self.login_attempt)
 
-def receive_message(message):
-    messages.configure(state='normal')
-    messages.insert(END, "%s: %s\n" % (challenger, message))
-    messages.see("end")
-    messages.configure(state='disabled')
+        self.user_pass = ()
+        self.logged_in = False
+        #################################
 
+        ########## CHAT SELECT ##########
+        self.frames.append(ChatFrame(self.window, None, None))
 
-password_input.bind("<Return>", login_attempt)
-login_button.bind("<Button-1>", login_attempt)
+        Label(self.frames[self.HOME_FRAME], text="Who would you like to chat with?") \
+            .place(relx=.5, rely=.4, anchor=CENTER)
+        self.input_request = StringVar()
+        self.request_input = Entry(self.frames[self.HOME_FRAME], text=self.input_request)
+        self.request_input.place(relx=.5, rely=.5, anchor="center")
 
-for i in range(len(chat_buttons)):
-    button_label = chat_buttons[i].cget("text")
-    challenger = button_label[10:]
-    chat_buttons[i].bind("<Button-1>", lambda event: load_chat(event, i+2, challenger))
+        self.request_input.bind("<Return>", self.submit_request)
 
-chat_input.bind("<Return>", send_message)
-chat_input.bind("<Escape>", return_home)
+        self.request = ""
+        #################################
+
+        ########## CHAT SCREEN ##########
+        self.challenger = ""
+        self.outbox = ""
+        #################################
+
+    def get_disconnected(self):
+        return self.disconnected
+
+    def get_user_pass(self):
+        return self.user_pass
+
+    def get_request(self):
+        return self.request
+
+    def get_challenger(self):
+        return self.challenger
+
+    def get_outbox(self):
+        outbox = self.outbox
+        self.outbox = ""
+        return outbox
+
+    def login_attempt(self, event):
+        self.user_pass = (self.username_input.get().strip(), self.password_input.get().strip())
+
+    def failed_login(self):
+        self.user_pass = ()
+        self.username_input.config(bg="#f55555")
+        self.password_input.config(bg="#f55555")
+        self.input_username.set("")
+        self.input_password.set("")
+
+    def successful_login(self):
+        if(not self.logged_in):
+            self.logged_in = True
+            self.frames[self.current_frame].pack_forget()
+            self.current_frame = self.HOME_FRAME
+            self.frames[self.current_frame].pack(expand=True, fill=BOTH)
+
+    def submit_request(self, event):
+        self.request = self.request_input.get().strip()
+        self.challenger = self.request
+
+    def failed_request(self):
+        self.request = ""
+        self.request_input.config(bg="#f55555")
+        self.input_request.set("")
+
+    def successful_request(self, challenger):
+        self.request_input.config(bg="#f0f0f0")
+        self.challenger = challenger
+        self.frames[self.current_frame].pack_forget()
+        self.current_frame = -1
+        for i in range(2, len(self.frames)):
+            if(self.frames[i].get_challenger() == challenger):
+                self.current_frame = i
+        if(self.current_frame == -1):
+            self.current_frame = len(self.frames)
+            self.frames.append(ChatFrame(challenger, self.send_message, self.return_home))
+        self.frames[self.current_frame].pack(expand=True, fill=BOTH)
+        self.frames[self.current_frame].set_focus()
+
+    def return_home(self, event):
+        self.frames[self.current_frame].pack_forget()
+        self.current_frame = self.HOME_FRAME
+        self.frames[self.current_frame].pack(expand=True, fill=BOTH)
+        self.challenger = ""
+
+    def send_message(self, event):
+        input_get = self.frames[self.current_frame].get_input()
+        if(input_get != ""):
+            self.frames[self.current_frame].send_message(self.user_pass[0])
+        self.outbox = input_get
+        return "break"
+
+    def receive_message(self, challenger, message):
+        for i in range(2, len(self.frames)):
+            if(self.frames[i].get_challenger() == challenger):
+                self.frames[i].recieve_message(message)
+                break;
+
+    def update(self):
+        self.window.update()
+
+    def on_closing(self):
+        self.disconnected = True
+        self.window.destroy()
