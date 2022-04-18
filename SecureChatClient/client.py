@@ -105,7 +105,7 @@ while True:  # Want to process messages from the server first
             # KDC Ticket Getting Stage
             if (Server_reply.get('Target') is None):
                 # Decrypt ticket with private key, place session key in temp dict
-                if(Server_reply.get('TGT') is not None):
+                if(Server_reply.get('TGT')):
                     # TGT has been sent to client?
                     enc_tgt = Server_reply['TGT']
                     dec_tgt = json.loads(decrypt(enc_tgt, KDC_privkey))
@@ -121,7 +121,7 @@ while True:  # Want to process messages from the server first
                         }
                     }
                     sendDict(KDC_TGS_Setup)
-                elif(Server_reply.get('Ticket') is not None and currentTarget != ""):
+                elif(Server_reply.get('Ticket') and currentTarget != ""):
                     if Server_reply['status'] is True:
                         ticket_dict = json.loads(decrypt(Server_reply['Ticket'], KDC_SessionKey))
                         ActiveSessionKeys[f'{currentTarget}'] = ticket_dict['session_key']
@@ -135,8 +135,12 @@ while True:  # Want to process messages from the server first
                         }
                         # Sends the ticket to the target through server.
                         sendDict(TicketToTarget)
+                    else:
+                        print("Ticket request failed, enter target again.")
+                        # Reset the current target...
+                        currentTarget = None
 
-            elif (Server_reply.get('Target') is not None):
+            elif (Server_reply.get('Target')):
                 # This case someone else has sent a ticket over
                 # We want to decrypt it and put it in ready queue...
                 if Server_reply.get('Ticket'):

@@ -152,10 +152,19 @@ while True:
                         
                     
                 elif msgDict.get('TGS') is not None:
-                    print(f"TGS request from {user['data'].decode('utf-8')}. ")
-                    ret['Ticket'] = KDCServer.TGS(msgDict['TGS'])
-                    ret['msg'] = "TGS Request Complete..."
-                    ret['status'] = False if ret['Ticket'] == -1 else True
+                    isTargetOnline = False
+                    for client_socket in clients:
+                        if clients[client_socket]['data'].decode('utf-8') == msgDict['TGS']['Target']:
+                            isTargetOnline = True
+                    if isTargetOnline:
+                        print(f"TGS request from {user['data'].decode('utf-8')}. ")
+                        ret['Ticket'] = KDCServer.TGS(msgDict['TGS'])
+                        ret['msg'] = "TGS Request Complete..."
+                        ret['status'] = False if ret['Ticket'] == -1 else True
+                    else:
+                        ret['Ticket'] = -1
+                        ret['msg'] = f"TGS Request Failed, {msgDict['TGS']['Target']} is not online!"
+                        ret['status'] = False
                 
                 for client_socket in clients:
                     # Sends the TGT/Ticket back to client with message.
