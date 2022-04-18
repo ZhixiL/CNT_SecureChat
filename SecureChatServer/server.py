@@ -73,14 +73,16 @@ while True:
 
             # If False - client disconnected before first message
             if(user):
-                if(checkExist(cur, user['data'].decode('utf-8')) is False):
-                    newUserFlag = True
-                    print("This is a new user...")
-                else:
-                    newUserFlag = False
-                sockets_list.append(client_socket)
-                clients[client_socket] = user
-                print('Accepted connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))
+                alreadyLogOn = False
+                for client_socket in clients:
+                        if clients[client_socket]['data'].decode('utf-8') == user:
+                            alreadyLogOn = True
+                
+                if alreadyLogOn == False:
+                    newUserFlag = checkExist(cur, user['data'].decode('utf-8'))
+                    sockets_list.append(client_socket)
+                    clients[client_socket] = user
+                    print('Accepted connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))
 
         # If existing socket is sending a message
         else:
