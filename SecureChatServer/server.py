@@ -127,6 +127,7 @@ while True:
                         cur.execute("select * from Users where ID=:target", {"target": requester})
                         requester_tuple = cur.fetchone()
                     if requester_tuple[2] == pswd:
+                        print("PASSWORD: %s" % requester_tuple[2])
                         print(requester_tuple[1])
                         EncPrivkey = rsa.encrypt(requester_tuple[1].encode('utf-8'),
                                                  requester_pubkey)

@@ -18,11 +18,7 @@ cur.execute('''CREATE TABLE Admin
 # cur.execute('''Create Table if not exists TGTs 
 #             (ID text, key text, timestamp integer)''')
 
-user_list = [
-    ("Alice", keyGeneration(), "alicepass"),
-    ("Zack", keyGeneration(), "zackpass"),
-    ("Bob", keyGeneration(), "bobpass")
-]
+user_list = []
 admin_list = [
     ("Admin", keyGeneration(), "AdminPass")
 ]

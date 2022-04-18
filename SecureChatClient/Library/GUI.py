@@ -1,4 +1,5 @@
 from tkinter import *
+from hashlib import md5
 
 
 class ChatFrame(Frame):
@@ -45,7 +46,7 @@ class ChatFrame(Frame):
         self.messages.configure(state='disabled')
         self.input_message.set("")
 
-    def recieve_message(self, message):
+    def receive_message(self, message):
         self.messages.configure(state='normal')
         if (message == ""):
             self.messages.insert(END, "%s is now offline.\n" % self.challenger)
@@ -53,6 +54,7 @@ class ChatFrame(Frame):
             self.messages.insert(END, "%s: %s\n" % (self.challenger, message))
         self.messages.see("end")
         self.messages.configure(state='disabled')
+
 
 class GUI:
 
@@ -135,7 +137,8 @@ class GUI:
         return outbox
 
     def login_attempt(self, event):
-        self.user_pass = (self.username_input.get().strip(), self.password_input.get().strip())
+        self.user_pass = (self.username_input.get().strip(),
+                          md5(self.password_input.get().strip().encode()).hexdigest())
 
     def failed_login(self):
         self.user_pass = ()
@@ -190,7 +193,7 @@ class GUI:
     def receive_message(self, challenger, message):
         for i in range(2, len(self.frames)):
             if(self.frames[i].get_challenger() == challenger):
-                self.frames[i].recieve_message(message)
+                self.frames[i].receive_message(message)
                 break;
 
     def update(self):

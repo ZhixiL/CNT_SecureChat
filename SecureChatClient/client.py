@@ -93,17 +93,14 @@ while True:  # Want to process messages from the server first
                     else:
                         sendDict(prep_AS_request())
             elif currentTarget is not None and gui.get_challenger() == "":
-                print(0)
                 currentTarget = None
-                print(-1)
                 gui.failed_request()
-                print(-2)
 
             message_header = cli.recv(LENGTH)
             message_length = int(message_header.decode('utf-8').strip())
             Server_reply = json.loads(cli.recv(message_length).decode('utf-8'))
 
-            print(Server_reply)
+            # print(Server_reply)
             if Server_reply.get('msg'):  # Display this to the user...
                 print(f"From server: {Server_reply['msg']}")
 
