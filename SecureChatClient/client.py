@@ -215,6 +215,7 @@ while True:  # Want to process messages from the server first
                         'Target': key,
                         'enc_message': encrypt(message, ActiveSessionKeys[key])
                     })
+                sys.exit()
             else:
                 message = gui.get_outbox()
                 if (ActiveSessionKeys.get(currentTarget) is not None and message != ""):
