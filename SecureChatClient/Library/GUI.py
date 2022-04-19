@@ -139,8 +139,10 @@ class GUI:
         return outbox
 
     def login_attempt(self, event):
-        self.user_pass = (self.username_input.get().strip(),
-                          md5(self.password_input.get().strip().encode()).hexdigest())
+        user = self.username_input.get().strip()
+        pswd = self.password_input.get().strip()
+        if(user != "" and pswd != ""):
+            self.user_pass = (user, md5(pswd.encode()).hexdigest())
 
     def failed_login(self):
         self.user_pass = ()

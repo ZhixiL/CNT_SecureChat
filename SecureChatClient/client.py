@@ -171,6 +171,8 @@ while True:  # Want to process messages from the server first
                     gui.receive_message(Server_reply.get('ID'), message)
             if KDC_privkey == 0 and len(gui.get_user_pass()) != 0:
                 gui.failed_login()
+                attempted_login = False
+                cli.send(f"{0:<{LENGTH}}".encode('utf-8'))
 
     except IOError as e:
         # This is normal on non blocking connections
@@ -181,11 +183,13 @@ while True:  # Want to process messages from the server first
             sys.exit()
 
         if KDC_privkey == 0 and len(gui.get_user_pass()) != 0:
+            cli.send(f"{0:<{LENGTH}}".encode('utf-8'))
             if (attempted_login):
                 gui.failed_login()
+                attempted_login = False
+                cli.send(f"{0:<{LENGTH}}".encode('utf-8'))
             else:
                 attempted_login = True
-                cli.send(f"{0:<{LENGTH}}".encode('utf-8'))
                 my_username = gui.get_user_pass()[0]
                 my_pswd = gui.get_user_pass()[1]
                 username = my_username.strip().encode('utf-8')
