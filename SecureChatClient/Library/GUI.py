@@ -20,6 +20,7 @@ class ChatFrame(Frame):
 
             self.chat_input.bind("<Return>", enter)
             self.chat_input.bind("<Escape>", esc)
+            self.messages.bind("<Escape>", esc)
 
             self.challenger = challenger
             #################################
@@ -44,17 +45,24 @@ class ChatFrame(Frame):
         self.messages.insert(END, "%s: %s\n" % (user, self.chat_input.get().rstrip()))
         self.messages.see("end")
         self.messages.configure(state='disabled')
-        self.input_message.set("")
+        self.input_message = ""
 
     def receive_message(self, message):
         self.messages.configure(state='normal')
         if (message == ""):
             self.messages.insert(END, "%s is now offline.\n" % self.challenger)
+            self.messages.see("end")
+            self.messages.configure(state='disabled')
             return False
-        else:
-            self.messages.insert(END, "%s: %s\n" % (self.challenger, message))
+        self.messages.insert(END, "%s: %s\n" % (self.challenger, message))
         self.messages.see("end")
         self.messages.configure(state='disabled')
+        return True
+
+    def await_removal(self, my_index, current_frame):
+        if(my_index == current_frame):
+            self.chat_input.configure(state="disabled")
+            return False
         return True
 
 
@@ -201,8 +209,14 @@ class GUI:
     def receive_message(self, challenger, message):
         for i in range(2, len(self.frames)):
             if(self.frames[i].get_challenger() == challenger):
-                self.frames[i].receive_message(message)
-                break;
+                if(self.frames[i].receive_message(message)):
+                    return True
+                while(not self.frames[i].await_removal(my_index=i, current_frame=self.current_frame)):
+                    self.window.update()
+                    if(self.frames[i].await_removal(my_index=i, current_frame=self.current_frame)):
+                        self.frames.pop(i)
+                        break
+        return False
 
     def update(self):
         self.window.update()

@@ -170,7 +170,7 @@ while True:  # Want to process messages from the server first
                     message = decrypt(enc_message, ActiveSessionKeys[Server_reply.get('ID')])
                     if (gui.receive_message(Server_reply.get('ID'), message) is False):
                         ActiveSessionKeys.pop(Server_reply.get('ID'))
-                        print(ActiveSessionKeys)
+                        # print(ActiveSessionKeys)
                     
             if KDC_privkey == 0 and len(gui.get_user_pass()) != 0:
                 gui.failed_login()
