@@ -86,8 +86,11 @@ while True:  # Want to process messages from the server first
                 sendDict(prep_server_pukey_request())
             elif KDC_privkey != 0 and currentTarget is None:  # Modify switch user here...
                 gui.successful_login()
-                if len(gui.get_request()) != 0 and gui.get_request() != my_username:
-                    currentTarget = gui.get_request()
+                if len(gui.get_request()) != 0:
+                    if gui.get_request() != my_username:
+                        currentTarget = gui.get_request()
+                    else:
+                        gui.failed_request()
                 if currentTarget is not None:
                     if (ActiveSessionKeys.get(currentTarget) is not None):
                         gui.successful_request(currentTarget)

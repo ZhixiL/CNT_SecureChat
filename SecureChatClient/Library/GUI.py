@@ -45,7 +45,7 @@ class ChatFrame(Frame):
         self.messages.insert(END, "%s: %s\n" % (user, self.chat_input.get().rstrip()))
         self.messages.see("end")
         self.messages.configure(state='disabled')
-        self.input_message = ""
+        self.input_message.set("")
 
     def receive_message(self, message):
         self.messages.configure(state='normal')
