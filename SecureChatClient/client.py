@@ -66,6 +66,7 @@ ActiveSessionKeys = dict()  # In the format {targetName : session key, ...}
 currentTarget = None  # Save anyone that is currently chatting with.
 KDC_SessionKey = None
 waiting_to_be_connected = False
+attempted_login = False
 
 # Initialize the connection between user and server.
 my_username = "temp"
@@ -94,7 +95,7 @@ while True:  # Want to process messages from the server first
                         sendDict(prep_AS_request())
             elif currentTarget is not None and gui.get_challenger() == "":
                 currentTarget = None
-                gui.failed_request()
+                # gui.failed_request()
 
             message_header = cli.recv(LENGTH)
             message_length = int(message_header.decode('utf-8').strip())
@@ -168,7 +169,7 @@ while True:  # Want to process messages from the server first
                     enc_message = Server_reply['enc_message']
                     message = decrypt(enc_message, ActiveSessionKeys[Server_reply.get('ID')])
                     gui.receive_message(Server_reply.get('ID'), message)
-            if (KDC_privkey == 0 and len(gui.get_user_pass()) != 0):
+            if KDC_privkey == 0 and len(gui.get_user_pass()) != 0:
                 gui.failed_login()
 
     except IOError as e:
@@ -178,21 +179,25 @@ while True:  # Want to process messages from the server first
         if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
             print('Reading error: {}'.format(str(e)))
             sys.exit()
-        
-        if KDC_privkey == 0 and len(gui.get_user_pass()) != 0:
-            cli.send(f"{0:<{LENGTH}}".encode('utf-8'))
-            my_username = gui.get_user_pass()[0]
-            my_pswd = gui.get_user_pass()[1]
-            username = my_username.strip().encode('utf-8')
-            username_header = f"{len(username):<{LENGTH}}".encode('utf-8')
 
-            # Reset the connection
-            cli = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            cli.connect((IP, PORT))
-            cli.setblocking(False)
-            
-            cli.send(username_header + username)
-            sendDict(prep_RSA_auth_request(my_pswd))
+        if KDC_privkey == 0 and len(gui.get_user_pass()) != 0:
+            if (attempted_login):
+                gui.failed_login()
+            else:
+                attempted_login = True
+                cli.send(f"{0:<{LENGTH}}".encode('utf-8'))
+                my_username = gui.get_user_pass()[0]
+                my_pswd = gui.get_user_pass()[1]
+                username = my_username.strip().encode('utf-8')
+                username_header = f"{len(username):<{LENGTH}}".encode('utf-8')
+
+                # Reset the connection
+                cli = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                cli.connect((IP, PORT))
+                cli.setblocking(False)
+
+                cli.send(username_header + username)
+                sendDict(prep_RSA_auth_request(my_pswd))
 
         if len(ActiveSessionKeys) > 0:
             # print("ActiveUsers: {", end='')
@@ -204,7 +209,7 @@ while True:  # Want to process messages from the server first
                     sendDict({
                         'ID': my_username,
                         'Target': key,
-                        'enc_message': encrypt(message, ActiveSessionKeys[currentTarget])
+                        'enc_message': encrypt(message, ActiveSessionKeys[key])
                     })
             else:
                 message = gui.get_outbox()

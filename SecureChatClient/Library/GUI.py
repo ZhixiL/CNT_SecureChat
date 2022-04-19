@@ -79,6 +79,7 @@ class GUI:
         self.input_username = StringVar()
         self.username_input = Entry(self.frames[self.LOGIN_FRAME], text=self.input_username)
         self.username_input.place(relx=.5, rely=.4, anchor="center")
+        self.username_input.focus_set()
 
         Label(self.frames[self.LOGIN_FRAME], text="Password\t\t")\
             .place(relx=.5, rely=.5, anchor="e")
@@ -108,6 +109,7 @@ class GUI:
         self.input_request = StringVar()
         self.request_input = Entry(self.frames[self.HOME_FRAME], text=self.input_request)
         self.request_input.place(relx=.5, rely=.5, anchor="center")
+        self.request_input.focus_set()
 
         self.request_input.bind("<Return>", self.submit_request)
 
@@ -155,8 +157,8 @@ class GUI:
             self.frames[self.current_frame].pack(expand=True, fill=BOTH)
 
     def submit_request(self, event):
-        self.request = self.request_input.get().strip()
-        self.challenger = self.request
+        self.challenger = self.request = self.request_input.get().strip()
+        self.input_request.set("")
 
     def failed_request(self):
         self.request = ""
@@ -164,7 +166,7 @@ class GUI:
         self.input_request.set("")
 
     def successful_request(self, challenger):
-        self.request_input.config(bg="#f0f0f0")
+        self.request_input.config(bg="#ffffff")
         self.challenger = challenger
         self.frames[self.current_frame].pack_forget()
         self.current_frame = -1
@@ -181,7 +183,9 @@ class GUI:
         self.frames[self.current_frame].pack_forget()
         self.current_frame = self.HOME_FRAME
         self.frames[self.current_frame].pack(expand=True, fill=BOTH)
+        self.request = ""
         self.challenger = ""
+        self.request_input.focus_set()
 
     def send_message(self, event):
         input_get = self.frames[self.current_frame].get_input()

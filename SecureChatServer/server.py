@@ -79,8 +79,8 @@ while True:
                         if clients[cliSoc]['data'].decode('utf-8') == user['data'].decode('utf-8'):
                             print("user found!")
                             alreadyLogOn = True
-                
-                if alreadyLogOn == False:
+
+                if not alreadyLogOn:
                     newUserFlag = not checkExist(cur, user['data'].decode('utf-8'))
                     sockets_list.append(client_socket)
                     clients[client_socket] = user
