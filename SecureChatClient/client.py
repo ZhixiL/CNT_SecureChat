@@ -178,7 +178,7 @@ while True:  # Want to process messages from the server first
         if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
             print('Reading error: {}'.format(str(e)))
             sys.exit()
-
+        
         if KDC_privkey == 0 and len(gui.get_user_pass()) != 0:
             cli.send(f"{0:<{LENGTH}}".encode('utf-8'))
             my_username = gui.get_user_pass()[0]

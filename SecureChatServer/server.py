@@ -72,14 +72,16 @@ while True:
             user = receive_message(client_socket)
 
             # If False - client disconnected before first message
-            if(user):
+            if user is not None:
                 alreadyLogOn = False
-                for client_socket in clients:
-                        if clients[client_socket]['data'].decode('utf-8') == user:
+                if user['data'].decode('utf-8') != "temp":
+                    for cliSoc in clients:
+                        if clients[cliSoc]['data'].decode('utf-8') == user['data'].decode('utf-8'):
+                            print("user found!")
                             alreadyLogOn = True
                 
                 if alreadyLogOn == False:
-                    newUserFlag = checkExist(cur, user['data'].decode('utf-8'))
+                    newUserFlag = not checkExist(cur, user['data'].decode('utf-8'))
                     sockets_list.append(client_socket)
                     clients[client_socket] = user
                     print('Accepted connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))

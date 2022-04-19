@@ -1,3 +1,4 @@
+from pickle import FALSE
 import random, sqlite3, json, rsa
 from Library.Consts import *
 
@@ -13,6 +14,8 @@ def getIntKey(input):
 # You can use this in the client side, just make sure to use this appropriately
 # With correct cursor object and target name, and there exist Users column in your .db
 def checkExist(cur, name):
+    if name == "temp":
+        return False
     if isinstance(cur, sqlite3.Cursor):
         cur.execute("select * from Users where ID=:target", {"target": name})
         if cur.fetchone() is None:
