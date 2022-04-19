@@ -50,10 +50,12 @@ class ChatFrame(Frame):
         self.messages.configure(state='normal')
         if (message == ""):
             self.messages.insert(END, "%s is now offline.\n" % self.challenger)
+            return False
         else:
             self.messages.insert(END, "%s: %s\n" % (self.challenger, message))
         self.messages.see("end")
         self.messages.configure(state='disabled')
+        return True
 
 
 class GUI:
